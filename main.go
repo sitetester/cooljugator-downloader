@@ -65,7 +65,7 @@ func downloadAllLanguageCodeLinks(languageCode string, links []entity.Link, wgOu
 		go downloader.Download(dir, CooljugatorUrl+link.Href[1:], link.HrefText+".html", &wgInner)
 		counter += 1
 
-		if counter == 50 {
+		if counter == 10 {
 			counter = 0
 			time.Sleep(time.Second * 5)
 			fmt.Println("Sleeping....")
@@ -100,9 +100,7 @@ func downloadLanguageCodes(doc goquery.Document) map[string]string {
 		languageCode := href[1 : len(href)-1]
 		name := a.Text()
 
-		if languageCode == "lt" || languageCode == "ru" {
-			languageCodeNameMap[languageCode] = name
-		}
+		languageCodeNameMap[languageCode] = name
 	})
 
 	return languageCodeNameMap
@@ -111,7 +109,7 @@ func downloadLanguageCodes(doc goquery.Document) map[string]string {
 func parseEachLanguageCodeLinks(languageCode string, linksByLanguageCodeChan chan entity.LinksByLanguageCode) {
 	// some languages don't have `/all` page, only `/list`
 	url := CooljugatorUrl + languageCode + "/list/all"
-	fmt.Println("Parsing language code URL ...", url)
+	fmt.Println("Parsing language code ...", url)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -131,17 +129,15 @@ func parseEachLanguageCodeLinks(languageCode string, linksByLanguageCodeChan cha
 	var links []entity.Link
 
 	doc.Find("#conjugate ul li.item a").Each(func(index int, item *goquery.Selection) {
-		if index < 500 {
-			linkTag := item
-			href, _ := linkTag.Attr("href")
-			linkText := linkTag.Text()
+		linkTag := item
+		href, _ := linkTag.Attr("href")
+		linkText := linkTag.Text()
 
-			var link entity.Link
-			link.Href = href
-			link.HrefText = linkText
+		var link entity.Link
+		link.Href = href
+		link.HrefText = linkText
 
-			links = append(links, link)
-		}
+		links = append(links, link)
 	})
 
 	// when links are fully parsed, put it into linksByLanguageCodeChan channel
