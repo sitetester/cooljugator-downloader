@@ -1,41 +1,46 @@
 package service
 
 import (
-	"io"
+	"crypto/tls"
+	"fmt"
+	"io/ioutil"
 	"net/http"
-	"os"
+	"path/filepath"
 	"sync"
 	"time"
 )
 
 type Downloader struct{}
 
-func (downloader Downloader) Download(url string, fileName string, wg *sync.WaitGroup) error {
+func (downloader Downloader) Download(dir string, url string, fileName string, wg *sync.WaitGroup) {
 	defer wg.Done()
-	// Create the file
-	out, err := os.Create("./files/" + fileName)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
 
+	fmt.Println("Downloading...", url)
+
+	// Create New http Transport
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true, // disable verify
+		},
+	}
+
+	// Create Http Client
 	timeout := time.Duration(300 * time.Second)
-	client := http.Client{
-		Timeout: timeout,
+	client := &http.Client{
+		Transport: transCfg,
+		Timeout:   timeout,
 	}
 
-	// Get the data
+	// Request
 	resp, err := client.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
 	if err != nil {
 		panic(err)
 	}
 
-	return nil
+	defer resp.Body.Close()
+
+	body, _ := ioutil.ReadAll(resp.Body)
+	newPath := filepath.Join(dir, fileName)
+
+	ioutil.WriteFile(newPath, body, 0644)
 }
