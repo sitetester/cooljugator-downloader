@@ -65,15 +65,17 @@ func downloadAllLanguageCodeLinks(languageCode string, links []entity.Link, wgOu
 		go downloader.Download(dir, CooljugatorUrl+link.Href[1:], link.HrefText+".html", &wgInner)
 		counter += 1
 
-		if counter == 10 {
+		// this is done to avoid 'Connection reset by peer' error
+		// in other case, it could be modified/removed
+		if counter == 5 {
 			counter = 0
 			time.Sleep(time.Second * 5)
-			fmt.Println("Sleeping....")
+			fmt.Printf("[%s] %s \n", languageCode, "Sleeping....")
 		}
 	}
 
 	wgInner.Wait()
-	fmt.Println("All done!")
+	fmt.Printf("%s %s \n", languageCode, "- Done")
 }
 
 func getLinksByLanguageCodeMap(ch chan entity.LinksByLanguageCode, totalLanguageCodes int) map[string][]entity.Link {
@@ -109,7 +111,7 @@ func downloadLanguageCodes(doc goquery.Document) map[string]string {
 func parseEachLanguageCodeLinks(languageCode string, linksByLanguageCodeChan chan entity.LinksByLanguageCode) {
 	// some languages don't have `/all` page, only `/list`
 	url := CooljugatorUrl + languageCode + "/list/all"
-	fmt.Println("Parsing language code ...", url)
+	fmt.Println("Parsing language list ...", url)
 
 	resp, err := http.Get(url)
 	if err != nil {
